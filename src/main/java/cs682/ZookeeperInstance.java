@@ -19,6 +19,7 @@ public class ZookeeperInstance {
     private static final String GROUP = "/CS682_Test";
     private static String member;
     private static Chatproto.ZKData data;
+    private String udpPort;
     private ZooKeeper zk;
 
     /**
@@ -26,9 +27,10 @@ public class ZookeeperInstance {
      * @param member name of the user
      * @param data ZKData object of protocol buffer
      */
-    public ZookeeperInstance(String member, Chatproto.ZKData data){
+    public ZookeeperInstance(String member, Chatproto.ZKData data, String udpPort){
         ZookeeperInstance.member = member;
         ZookeeperInstance.data = data;
+        this.udpPort = udpPort;
         connectToZookeeper();
     }
 
@@ -98,6 +100,7 @@ public class ZookeeperInstance {
                         Chatproto.ZKData zkData = Chatproto.ZKData.parseFrom(raw);
                         System.out.println("port: " + zkData.getPort());
                         System.out.println("ip: " + zkData.getIp());
+                        System.out.println("udp: " + zkData.getUdpport());
 
                     } catch (InvalidProtocolBufferException e) {
                         e.printStackTrace();

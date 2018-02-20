@@ -17,7 +17,8 @@ public class Chat {
     private static ZookeeperInstance zk;
     private volatile static boolean running = true;
     private static String port;
-    private static final List<String> bCastMessage = Collections.synchronizedList(new ArrayList<String>());
+    private static final String UDPPORT = "4401";
+    private static final List<Chatproto.Chat> bCastMessage = Collections.synchronizedList(new ArrayList<Chatproto.Chat>());
 
 
 /**
@@ -42,12 +43,13 @@ public class Chat {
         port = args[3];
         Chatproto.ZKData zkData = null;
 
+
         try {
-            zkData = Chatproto.ZKData.newBuilder().setPort(port).setIp(InetAddress.getLocalHost().getHostAddress()).build();
+            zkData = Chatproto.ZKData.newBuilder().setUdpport(UDPPORT).setPort(port).setIp(InetAddress.getLocalHost().getHostAddress()).build();
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
-        zk = new ZookeeperInstance(username, zkData);
+        zk = new ZookeeperInstance(username, zkData, UDPPORT);
         ServerSocket serve = null;
         try {
             serve = new ServerSocket(Integer.parseInt(port));
@@ -55,6 +57,8 @@ public class Chat {
             e.printStackTrace();
         }
         readMessages(serve);
+        Runnable udpListener = new UdpListener(UDPPORT,bCastMessage);
+        new Thread(udpListener).start();
 
 
         while (running){
@@ -107,8 +111,8 @@ public class Chat {
     private static void listBroadcastMessages(){
         System.out.println("--Broadcast Messages--");
 
-        for(String s : bCastMessage){
-            System.out.println(s);
+        for(Chatproto.Chat chat : bCastMessage){
+            System.out.println(chat.getMessage());
         }
         System.out.println("---------------------");
     }
@@ -187,7 +191,7 @@ public class Chat {
 
     /**
      * Method that runs in separate thread from main and waits for incoming messages at a port.
-     * If a message is recived it creates a new thread to handle it and continues to listen for new messages
+     * If a message is received it creates a new thread to handle it and continues to listen for new messages
      * @param serve ServerSocket object
      */
     private static void readMessages(final ServerSocket serve){
