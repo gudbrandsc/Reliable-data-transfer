@@ -10,11 +10,11 @@ import java.util.List;
  */
 public class MessageListener extends Thread{
     private Socket socket;
-    private List<Chatproto.Chat> list;
+    private HistoryData historyData;
 
     /**Constructor*/
-    MessageListener(Socket socket, List<Chatproto.Chat> list) {
-        this.list = list;
+    MessageListener(Socket socket, HistoryData historyData) {
+        this.historyData = historyData;
         this.socket = socket;
     }
 
@@ -32,7 +32,7 @@ public class MessageListener extends Thread{
 
         if(chat!=null){
             if (chat.getIsBcast()) {
-                list.add(chat);
+                historyData.addMessage(chat);
             }
 
             System.out.println(" ------- NEW MESSAGE -------");

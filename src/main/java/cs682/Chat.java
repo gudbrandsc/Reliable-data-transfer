@@ -17,9 +17,9 @@ public class Chat {
     private static ZookeeperInstance zk;
     private volatile static boolean running = true;
     private static String port;
-    private static final String UDPPORT = "4401";
-    private static final List<Chatproto.Chat> bCastMessage = Collections.synchronizedList(new ArrayList<Chatproto.Chat>());
-
+    private static String udpPort;
+    private static HistoryData historyData = new HistoryData();
+    private static UdpHandler udpHandler;
 
 /**
  * Main method that connects to zookeeper, starts the message listener and takes commands from the user
@@ -29,10 +29,10 @@ public class Chat {
 
         //Check that no arguments are missing, and are following the right format.
         System.out.println("Connecting to server...");
-        if(args.length!=4){
+        if(args.length!=6){
             System.out.println("ERROR: To few arguments");
             System.exit(0);
-        } else if((!args[0].equals("-user")) || (!args[2].equals("-port"))){
+        } else if((!args[0].equals("-user")) || (!args[2].equals("-port")) || (!args[4].equals("-udpport"))){
             System.out.println("Wrong syntax while passing args");
             System.out.println("Expected: -user username -port ****");
             System.out.println("Found: " + args[0] + " " + args[1] + " " + args[2] + " " + args[3]);
@@ -41,15 +41,16 @@ public class Chat {
 
         username = args[1];
         port = args[3];
+        udpPort = args[5];
         Chatproto.ZKData zkData = null;
 
 
         try {
-            zkData = Chatproto.ZKData.newBuilder().setUdpport(UDPPORT).setPort(port).setIp(InetAddress.getLocalHost().getHostAddress()).build();
+            zkData = Chatproto.ZKData.newBuilder().setUdpport(udpPort).setPort(port).setIp(InetAddress.getLocalHost().getHostAddress()).build();
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
-        zk = new ZookeeperInstance(username, zkData, UDPPORT);
+        zk = new ZookeeperInstance(username, zkData, udpPort);
         ServerSocket serve = null;
         try {
             serve = new ServerSocket(Integer.parseInt(port));
@@ -57,9 +58,8 @@ public class Chat {
             e.printStackTrace();
         }
         readMessages(serve);
-        Runnable udpListener = new UdpListener(UDPPORT,bCastMessage);
-        new Thread(udpListener).start();
-
+        udpHandler = new UdpHandler(udpPort,historyData);
+        new Thread(udpHandler).start();
 
         while (running){
             System.out.println("Enter command: ");
@@ -75,6 +75,8 @@ public class Chat {
                 broadcast(zk, username);
             } else if(command.trim().equalsIgnoreCase("read")){
                 listBroadcastMessages();
+            }else if(command.trim().equalsIgnoreCase("Request")){
+                sendHistoryRequest();
             } else if(command.trim().equalsIgnoreCase("Exit")){
                 System.out.println("Bye =)");
                 shutdown(serve);
@@ -91,6 +93,8 @@ public class Chat {
         System.out.println("-- List --  Display all other users.");
         System.out.println("-- Read -- Display all received broadcast messages.");
         System.out.println("-- Send -- Send a message to a user.");
+        System.out.println("-- Request -- Change your broadcast history to an other users.");
+
     }
 
     /**
@@ -111,7 +115,7 @@ public class Chat {
     private static void listBroadcastMessages(){
         System.out.println("--Broadcast Messages--");
 
-        for(Chatproto.Chat chat : bCastMessage){
+        for(Chatproto.Chat chat : historyData.getbCastMessage()){
             System.out.println(chat.getMessage());
         }
         System.out.println("---------------------");
@@ -201,7 +205,7 @@ public class Chat {
                     while(running) {
                         Socket sock = serve.accept();
                         //Create thread to handle request
-                        MessageListener messageListener = new MessageListener(sock,bCastMessage);
+                        MessageListener messageListener = new MessageListener(sock,historyData);
                         messageListener.start();
                     }
                 } catch(IOException ioe) {
@@ -211,6 +215,21 @@ public class Chat {
         };
         new Thread(run).start();
     }
+    private static void sendHistoryRequest(){
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Enter username:");
+        String receiverName = "/" + sc.nextLine();
+
+        Chatproto.ZKData receiverData = null;
+        if(zk.getZnodeData(receiverName)!= null) {
+            try {
+                receiverData = Chatproto.ZKData.parseFrom(zk.getZnodeData(receiverName));
+            } catch (InvalidProtocolBufferException e) {
+                e.printStackTrace();
+            }
+            udpHandler.requestHistory(receiverData);
+        }
+    }
 
     /**
      * Method that stops the listening thread, by stopping the while loop and closing socket.
@@ -218,6 +237,7 @@ public class Chat {
      */
     private static void shutdown(ServerSocket serve){
         running=false;
+        udpHandler.shutDown();
         try {
             serve.close();
         } catch (IOException e) {
