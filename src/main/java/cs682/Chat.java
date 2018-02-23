@@ -24,6 +24,7 @@ public class Chat {
     private static HistoryData historyData = new HistoryData();
     private static UdpHandler udpHandler;
 
+
     /**
  * Main method that connects to zookeeper, starts the message listener and takes commands from the user
  * */
@@ -37,9 +38,9 @@ public class Chat {
             System.exit(0);
         } else if((!args[0].equals("-user")) || (!args[2].equals("-port")) || (!args[4].equals("-udpport"))){
             System.out.println("Wrong syntax while passing args");
-            System.out.println("Expected: -user username -port **** -drop 0-100%");
+            System.out.println("Expected: -user username -port ****");
             System.out.println("Found: " + args[0] + " " + args[1] + " " + args[2] + " " + args[3]);
-            System.exit(0);
+            System.exit(0); //TODO if not 1-100 shutdown
         }
 
         username = args[1];

@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 
 public class PacketSender implements Runnable {
     private boolean running = true;
@@ -23,6 +24,7 @@ public class PacketSender implements Runnable {
     private int port;
     private int expSeqNo;
     private int lastPacket;
+
 
     /**
      * */
@@ -60,7 +62,6 @@ public class PacketSender implements Runnable {
         boolean isLast = false;
         byte[] packetData = new byte[10];
         int packet_num = 1;
-        System.out.println(end);
         for(int i = 0; i <= end; i++){
             packetData[count] = history[i];
             if(count == 9){
@@ -87,7 +88,7 @@ public class PacketSender implements Runnable {
             this.lastPacket = 4;
         }else{
             this.lastPacket = packetDataList.size();
-            System.out.println(lastPacket);
+            System.out.println("NUM PACKETS: "+lastPacket);
         }
     }
 
@@ -103,7 +104,7 @@ public class PacketSender implements Runnable {
 
         float chance = r.nextFloat();
 
-        if (chance <= 0.25f){
+        if (chance <= 0.0f){
             System.out.println("Didn't send packet: " + packet.getSeqNo());
         }else {
             ByteArrayOutputStream outstream = new ByteArrayOutputStream(1024);
@@ -125,6 +126,7 @@ public class PacketSender implements Runnable {
             }
         }
     }
+
     private byte[] createHistoryArray(){
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
@@ -141,12 +143,17 @@ public class PacketSender implements Runnable {
 
             byte[] historyArray = createHistoryArray();
             createPackets(historyArray);
+            try {
+                TimeUnit.SECONDS.sleep(3);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             sendWindow();
             int numPackets = getNumPackets();
             int resentWindow = 0;
             while (running) {
                 try {
-                    this.wait(2000);
+                    this.wait(1000);
                     if (!ackList.isEmpty()) {
                         resentWindow = 0;
                         for(Chatproto.Data ack : ackList) {

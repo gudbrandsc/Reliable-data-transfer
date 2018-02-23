@@ -30,6 +30,7 @@ public class PacketReciver implements Runnable{
 
 
 
+
     public PacketReciver(DatagramSocket socket, Chatproto.ZKData zkData, HistoryData historyData, UdpHandler udpHandler){
         this.socket = socket;
         this.zkData = zkData;
@@ -40,10 +41,7 @@ public class PacketReciver implements Runnable{
     }
 
     private void sendRequest()  {
-        float chance = random.nextFloat();
-        if (chance <= 0.25f) {
-            System.out.println("Didn't send request.. ");
-        }else {
+
             try {
                 Chatproto.Data req = Chatproto.Data.newBuilder().setTypeValue(0).build();
                 ByteArrayOutputStream outstream = new ByteArrayOutputStream(1024);
@@ -59,7 +57,7 @@ public class PacketReciver implements Runnable{
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
+
     }
 
 
@@ -67,7 +65,7 @@ public class PacketReciver implements Runnable{
 
         float chance = random.nextFloat();
 
-        if (chance <= 0.25f){
+        if (chance <= 0.10f){
             System.out.println("Did not send ACK for packet: "+seq_no);
         }else {
             Chatproto.Data ack = Chatproto.Data.newBuilder().setTypeValue(1).setSeqNo(seq_no).build();
@@ -84,7 +82,7 @@ public class PacketReciver implements Runnable{
     }
 
     public void addPacket(Chatproto.Data data){
-        System.out.println("Received packet: "+ data.getSeqNo() + " expected packet: "+expected_packet);
+        System.out.println("Received packet: "+ data.getSeqNo() + " expected packet: " + expected_packet);
         synchronized (this) {
             if(this.expected_packet == data.getSeqNo()){
                 try {
@@ -101,17 +99,12 @@ public class PacketReciver implements Runnable{
 
     @Override
     public void run() {
-        try {
-            TimeUnit.SECONDS.sleep(3);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         sendRequest();
         synchronized (this) {
             int numReqest = 0;
             while (running) {
                 try {
-                    this.wait(2000);
+                    this.wait(5000);
                     if(!packetList.isEmpty()){
                         for (Chatproto.Data packet : packetList) {
                             if (packet.getSeqNo() == expected_packet) {
@@ -128,10 +121,6 @@ public class PacketReciver implements Runnable{
                             }
                             packetList.remove(packet);
                         }
-                    }else if(packetList.isEmpty() && expected_packet==1 && numReqest < 4){
-                        System.out.println("Didn't receive any data, resending request..");
-                        sendRequest();
-                        numReqest++;
                     }else{
                         finish();
                         System.out.println("Session timed out..");
