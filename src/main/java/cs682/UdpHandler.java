@@ -1,3 +1,4 @@
+
 package cs682;
 
 import java.io.ByteArrayInputStream;
@@ -26,7 +27,6 @@ public class UdpHandler implements Runnable {
             e.printStackTrace();
         }
 
-
     }
 
     public void run() {
@@ -36,7 +36,6 @@ public class UdpHandler implements Runnable {
             try {
                 socket.receive(packet);
                 byte[] rcvdData = packet.getData();
-
                 ByteArrayInputStream instream = new ByteArrayInputStream(rcvdData);
                 Chatproto.Data protoPkt = Chatproto.Data.parseDelimitedFrom(instream);
                 Chatproto.Data.packetType type = protoPkt.getType();
@@ -47,7 +46,7 @@ public class UdpHandler implements Runnable {
 
                 if (type == Chatproto.Data.packetType.REQUEST) {
                     if(!packetSenders.containsKey(key) && !historyData.getbCastMessage().isEmpty()) {
-                        PacketSender packetSender = new PacketSender(socket,this,packetPort,packetIp);
+                        PacketSender packetSender = new PacketSender(socket,this,packetPort, packetIp);
                         new Thread(packetSender).start();
                         packetSenders.put(key, packetSender);
                     }
@@ -58,7 +57,7 @@ public class UdpHandler implements Runnable {
                     }
                 } else if(type == Chatproto.Data.packetType.ACK){
                     if(packetSenders.containsKey(key)){
-                       packetSenders.get(key).addAck(protoPkt);
+                        packetSenders.get(key).addAck(protoPkt);
                     }
                 }
             } catch (IOException e) {
@@ -66,6 +65,7 @@ public class UdpHandler implements Runnable {
             }
         }
     }
+
     public Chatproto.History getHistory(){
         return Chatproto.History.newBuilder().addAllHistory(historyData.getbCastMessage()).build();
     }
@@ -74,7 +74,6 @@ public class UdpHandler implements Runnable {
         this.packetRecivers.remove(key);
     }
     public void removeSender(String key){
-        System.out.println(packetSenders.size());
         this.packetSenders.remove(key);
     }
     public void requestHistory(Chatproto.ZKData data){

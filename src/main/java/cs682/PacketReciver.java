@@ -1,7 +1,9 @@
 package cs682;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -10,6 +12,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 
 public class PacketReciver implements Runnable{
     private boolean running = true;
@@ -19,6 +22,10 @@ public class PacketReciver implements Runnable{
     private HistoryData historyData;
     private UdpHandler udpHandler;
     private Chatproto.ZKData zkData;
+    private ByteString byteString = ByteString.EMPTY;
+    private Random random = new Random();
+
+
 
 
 
@@ -31,27 +38,37 @@ public class PacketReciver implements Runnable{
         this.udpHandler = udpHandler;
         this.packetList =  new ConcurrentLinkedQueue<>();
     }
-    public void sendRequest() throws IOException {
-        Chatproto.Data req = Chatproto.Data.newBuilder().setTypeValue(0).build();
-        ByteArrayOutputStream outstream = new ByteArrayOutputStream(1024);
-        req.writeDelimitedTo(outstream);
 
-        byte[] item = outstream.toByteArray();
-        InetAddress ipAddress = InetAddress.getByName(zkData.getIp());
-        int port = Integer.parseInt(zkData.getUdpport());
+    private void sendRequest()  {
+        float chance = random.nextFloat();
+        if (chance <= 0.25f) {
+            System.out.println("Didn't send request.. ");
+        }else {
+            try {
+                Chatproto.Data req = Chatproto.Data.newBuilder().setTypeValue(0).build();
+                ByteArrayOutputStream outstream = new ByteArrayOutputStream(1024);
+                req.writeDelimitedTo(outstream);
 
-        DatagramPacket datagramPacket = new DatagramPacket(item, item.length, ipAddress, port);
-        socket.send(datagramPacket);
+                byte[] item = outstream.toByteArray();
+                InetAddress ipAddress = InetAddress.getByName(zkData.getIp());
+                int port = Integer.parseInt(zkData.getUdpport());
+                DatagramPacket datagramPacket = new DatagramPacket(item, item.length, ipAddress, port);
+                socket.send(datagramPacket);
+                System.out.println("Sent request..");
 
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 
-    public void sendACK(int seq_no) throws IOException {
-        Random r = new Random();
+    private void sendACK(int seq_no) throws IOException {
 
-        float chance = r.nextFloat();
+        float chance = random.nextFloat();
 
-        if (chance <= 0.20f){
+        if (chance <= 0.25f){
+            System.out.println("Did not send ACK for packet: "+seq_no);
         }else {
             Chatproto.Data ack = Chatproto.Data.newBuilder().setTypeValue(1).setSeqNo(seq_no).build();
             ByteArrayOutputStream outstream = new ByteArrayOutputStream(1024);
@@ -60,21 +77,21 @@ public class PacketReciver implements Runnable{
             byte[] item = outstream.toByteArray();
             InetAddress ipAddress = InetAddress.getByName(zkData.getIp());
             int port = Integer.parseInt(zkData.getUdpport());
-            //TODO Should this be mine or reciver ip and port
-
             DatagramPacket datagramPacket = new DatagramPacket(item, item.length, ipAddress, port);
             socket.send(datagramPacket);
+            System.out.println("Sent ACK for packet: "+seq_no);
         }
     }
 
     public void addPacket(Chatproto.Data data){
+        System.out.println("Received packet: "+ data.getSeqNo() + " expected packet: "+expected_packet);
         synchronized (this) {
-            try {
-                sendACK(data.getSeqNo());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
             if(this.expected_packet == data.getSeqNo()){
+                try {
+                    sendACK(data.getSeqNo());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 this.packetList.add(data);
                 this.notify();
             }
@@ -85,44 +102,50 @@ public class PacketReciver implements Runnable{
     @Override
     public void run() {
         try {
-            sendRequest();
-        } catch (IOException e) {
+            TimeUnit.SECONDS.sleep(3);
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        sendRequest();
         synchronized (this) {
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            int numReqest = 0;
             while (running) {
                 try {
-                    wait(2000);
+                    this.wait(2000);
                     if(!packetList.isEmpty()){
                         for (Chatproto.Data packet : packetList) {
                             if (packet.getSeqNo() == expected_packet) {
-                                byte[] dataArray = packet.getData().toByteArray();
-                                outputStream.write(dataArray,0,dataArray.length);
-
+                                byteString = byteString.concat(packet.getData());
                                 if (packet.getIsLast()) {
-                                    Chatproto.History newHistory = Chatproto.History.parseFrom(outputStream.toByteArray());
+                                    ByteArrayInputStream inputStream = new ByteArrayInputStream(byteString.toByteArray());
+                                    Chatproto.History newHistory = Chatproto.History.parseDelimitedFrom(inputStream);
                                     historyData.updateHistory(newHistory.getHistoryList());
                                     finish();
                                     System.out.println("List was updated");
+                                    System.out.println("Command");
                                 }
                                 expected_packet++;
                             }
                             packetList.remove(packet);
                         }
+                    }else if(packetList.isEmpty() && expected_packet==1 && numReqest < 4){
+                        System.out.println("Didn't receive any data, resending request..");
+                        sendRequest();
+                        numReqest++;
                     }else{
                         finish();
-                        System.out.println("Session timed out");
+                        System.out.println("Session timed out..");
                     }
                     //Add new data to bytes array
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } catch (InvalidProtocolBufferException e) {
                     e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         }
-        System.out.println("Run done");
     }
     private void finish(){
         running = false;

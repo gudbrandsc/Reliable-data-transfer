@@ -12,11 +12,11 @@ import java.util.concurrent.CountDownLatch;
  * @author gudbrand schistad
  * Zookeeper class that is used for all zookeeper related operations
  */
-public class ZookeeperInstance {
-
-    private static final int PORT = 4400;
-    private static final String HOST = "localhost";
-    private static final String GROUP = "/CS682_Test";
+class ZookeeperInstance {
+//2181
+    private static final int PORT = 2181;
+    private static final String HOST = "mc01";
+    private static final String GROUP = "/CS682_Chat";
     private static String member;
     private static Chatproto.ZKData data;
     private String udpPort;
@@ -41,10 +41,10 @@ public class ZookeeperInstance {
         //Connect to ZK instance
         final CountDownLatch connectedSignal = new CountDownLatch(1);
         try {
-            zk = new ZooKeeper(HOST + ":" + PORT, 1000, new Watcher() {
+            zk = new ZooKeeper( HOST + ":" + PORT, 4000, new Watcher() {
                 @Override
                 public void process(WatchedEvent event) {
-                    if (event.getState() == Event.KeeperState.SyncConnected) {
+                    if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {
                         connectedSignal.countDown();
                     }
                 }

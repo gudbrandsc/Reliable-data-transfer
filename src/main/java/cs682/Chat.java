@@ -1,6 +1,9 @@
 package cs682;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -21,7 +24,7 @@ public class Chat {
     private static HistoryData historyData = new HistoryData();
     private static UdpHandler udpHandler;
 
-/**
+    /**
  * Main method that connects to zookeeper, starts the message listener and takes commands from the user
  * */
     public static void main(String[] args){
@@ -34,7 +37,7 @@ public class Chat {
             System.exit(0);
         } else if((!args[0].equals("-user")) || (!args[2].equals("-port")) || (!args[4].equals("-udpport"))){
             System.out.println("Wrong syntax while passing args");
-            System.out.println("Expected: -user username -port ****");
+            System.out.println("Expected: -user username -port **** -drop 0-100%");
             System.out.println("Found: " + args[0] + " " + args[1] + " " + args[2] + " " + args[3]);
             System.exit(0);
         }

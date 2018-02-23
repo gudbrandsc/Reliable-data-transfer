@@ -14,7 +14,7 @@ public class MessageSender extends Thread{
     private Chatproto.ZKData zkData;
 
     /*Constructor*/
-    MessageSender(Chatproto.Chat chat, Chatproto.ZKData zkData) {
+    public MessageSender(Chatproto.Chat chat, Chatproto.ZKData zkData) {
         this.chat = chat;
         this.zkData = zkData;
     }
