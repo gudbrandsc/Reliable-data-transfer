@@ -8,11 +8,14 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @author gudbrand schistad
+ * Class that sends packets and receives ACK
+ */
 public class PacketSender implements Runnable {
     private boolean running = true;
     private DatagramSocket socket;
@@ -24,11 +27,18 @@ public class PacketSender implements Runnable {
     private int port;
     private int expSeqNo;
     private int lastPacket;
+    private float dropPercent;
 
 
     /**
-     * */
-    public PacketSender(DatagramSocket socket, UdpHandler udpHandler, int port, String ip) {
+     * Constructor
+     * @param socket udp socket
+     * @param udpHandler
+     * @param port
+     * @param ip
+     * @param dropPercent number of packets that should be dropped
+     */
+    PacketSender(DatagramSocket socket, UdpHandler udpHandler, int port, String ip, float dropPercent) {
         this.socket = socket;
         this.udpHandler = udpHandler;
         this.history = this.udpHandler.getHistory();
@@ -37,11 +47,16 @@ public class PacketSender implements Runnable {
         this.expSeqNo = 1;
         this.ip = ip;
         this.port = port;
+        this.dropPercent = dropPercent;
 
     }
 
-    //Check if the message that is recived is a new ACK and call notify to send new packets
-    public void addAck(Chatproto.Data data) {
+    /**
+     * Check if the ACK is between expected sequence number and last packet sent.
+     * If true, adds the ACK to the que and notify
+     * @param data
+     */
+    void addAck(Chatproto.Data data) {
         System.out.println("Received ACK for: "+data.getSeqNo());
         synchronized (this) {
             if (data.getSeqNo() >= this.expSeqNo && data.getSeqNo() <= this.lastPacket) {
@@ -51,17 +66,24 @@ public class PacketSender implements Runnable {
         }
     }
 
-
+    /**
+     * Get number of packets created
+     * @return number of packets in packet list
+     */
     private int getNumPackets(){
         return this.packetDataList.size();
     }
 
+    /**
+     * Creates all packets and store them in a list
+     * @param history byte representation of the protobuf history object
+     */
     private void createPackets(byte[] history){
         int end = history.length-1;
         int count = 0;
         boolean isLast = false;
         byte[] packetData = new byte[10];
-        int packet_num = 1;
+        int packet_num = 1; //Seq number for the packet
         for(int i = 0; i <= end; i++){
             packetData[count] = history[i];
             if(count == 9){
@@ -72,8 +94,8 @@ public class PacketSender implements Runnable {
                 Chatproto.Data packet = Chatproto.Data.newBuilder().setSeqNo(packet_num).setData(packetString).setIsLast(isLast).setTypeValue(2).build();
                 packetDataList.add(packet);
                 packet_num++;
-                count=0;
-            }else if(count < 9 && i == end){
+                count = 0;
+            }else if(count < 9 && i == end){ // If last packet does not contain a byte array of size 10
                 isLast = true;
                 byte[] trimmedArray = new byte[count+1];
                 System.arraycopy(packetData, 0, trimmedArray, 0, count+1);
@@ -84,27 +106,32 @@ public class PacketSender implements Runnable {
                 count++;
             }
         }
+        //sets last packet.
         if(packet_num >= 4){
             this.lastPacket = 4;
         }else{
             this.lastPacket = packetDataList.size();
-            System.out.println("NUM PACKETS: "+lastPacket);
         }
     }
 
+    /**
+     * Sends window
+     */
     private void sendWindow() {
         System.out.println("Resent window"+expSeqNo+"-"+lastPacket);
         for(int i = expSeqNo; i <= lastPacket; i++){
             sendPacket(packetDataList.get(i - 1));
         }
     }
-
+    /**
+     * Sends a data packet to the receiver
+     */
     private void sendPacket(Chatproto.Data packet) {
         Random r = new Random();
 
         float chance = r.nextFloat();
 
-        if (chance <= 0.0f){
+        if (chance <= dropPercent){
             System.out.println("Didn't send packet: " + packet.getSeqNo());
         }else {
             ByteArrayOutputStream outstream = new ByteArrayOutputStream(1024);
@@ -119,7 +146,7 @@ public class PacketSender implements Runnable {
             try {
                 DatagramPacket datagramPacket = new DatagramPacket(item, item.length, InetAddress.getByName(ip), port);
                 socket.send(datagramPacket);
-                System.out.println("Sent packet: "+packet.getSeqNo());
+                System.out.println("Sent packet: " + packet.getSeqNo());
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -127,6 +154,10 @@ public class PacketSender implements Runnable {
         }
     }
 
+    /**
+     * Creates a byte array of the chatproto history object
+     * @return byte array
+     */
     private byte[] createHistoryArray(){
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
@@ -137,6 +168,8 @@ public class PacketSender implements Runnable {
         return outputStream.toByteArray();
     }
 
+    /**
+     * Method that waits for ack and sends packets*/
     @Override
     public void run() {
         synchronized (this) {
@@ -178,11 +211,18 @@ public class PacketSender implements Runnable {
         }
     }
 
+    /**
+     * Stops thread and removes thread from the senders map
+     */
     private void finish() {
         running = false;
         udpHandler.removeSender(ip + port);
     }
-
+    /**
+     * Method chat sends new packets when ACK's are received
+     * @param data ACK data
+     * @param numPackets number of packets in the list
+     */
     private void slideWindow(Chatproto.Data data,int numPackets) {
         int ackSeqNo = data.getSeqNo();
         int numSlides = (ackSeqNo - expSeqNo)+1;

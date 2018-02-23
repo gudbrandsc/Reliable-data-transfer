@@ -13,7 +13,7 @@ import java.util.concurrent.CountDownLatch;
  * Zookeeper class that is used for all zookeeper related operations
  */
 class ZookeeperInstance {
-//2181
+
     private static final int PORT = 2181;
     private static final String HOST = "mc01";
     private static final String GROUP = "/CS682_Chat";

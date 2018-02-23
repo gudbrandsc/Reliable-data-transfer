@@ -5,6 +5,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 
+import javax.swing.text.StyledEditorKit;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -32,22 +33,20 @@ public class Chat {
         String username;
 
         //Check that no arguments are missing, and are following the right format.
-        System.out.println("Connecting to server...");
         if(args.length!=6){
             System.out.println("ERROR: To few arguments");
             System.exit(0);
         } else if((!args[0].equals("-user")) || (!args[2].equals("-port")) || (!args[4].equals("-udpport"))){
             System.out.println("Wrong syntax while passing args");
-            System.out.println("Expected: -user username -port ****");
-            System.out.println("Found: " + args[0] + " " + args[1] + " " + args[2] + " " + args[3]);
-            System.exit(0); //TODO if not 1-100 shutdown
+            System.out.println("Expected: -user username -port **** -udpport ****");
+            System.out.println("Found: " + args[0] + " " + args[1] + " " + args[2] + " " + args[3]+ " " + args[4]);
+            System.exit(0);
         }
 
         username = args[1];
         port = args[3];
         udpPort = args[5];
         Chatproto.ZKData zkData = null;
-
 
         try {
             zkData = Chatproto.ZKData.newBuilder().setUdpport(udpPort).setPort(port).setIp(InetAddress.getLocalHost().getHostAddress()).build();
@@ -81,11 +80,29 @@ public class Chat {
                 listBroadcastMessages();
             }else if(command.trim().equalsIgnoreCase("Request")){
                 sendHistoryRequest();
+            }else if(command.trim().equalsIgnoreCase("Drop")){
+                setDropProcent();
+            }else if(command.trim().equalsIgnoreCase("Skip")){
+                setSkip();
             } else if(command.trim().equalsIgnoreCase("Exit")){
                 System.out.println("Bye =)");
                 shutdown(serve);
             }
         }
+    }
+
+    private static void setSkip() {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Enter true or false : ");
+        String skip = sc.nextLine();
+        udpHandler.setSkip(Boolean.parseBoolean(skip));
+    }
+
+    private static void setDropProcent() {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Enter dropProcent in range 0-1: : ");
+        String dropProcent = sc.nextLine();
+        udpHandler.setDrop(Float.parseFloat(dropProcent));
     }
 
     /**
@@ -98,6 +115,8 @@ public class Chat {
         System.out.println("-- Read -- Display all received broadcast messages.");
         System.out.println("-- Send -- Send a message to a user.");
         System.out.println("-- Request -- Change your broadcast history to an other users.");
+        System.out.println("-- Drop -- Set how many % of packets that should be dropped");
+        System.out.println("-- Skip -- Set if sender should skip sending some requests");
 
     }
 
@@ -208,7 +227,6 @@ public class Chat {
                 try {
                     while(running) {
                         Socket sock = serve.accept();
-                        //Create thread to handle request
                         MessageListener messageListener = new MessageListener(sock,historyData);
                         messageListener.start();
                     }

@@ -20,6 +20,7 @@ public class MessageSender extends Thread{
     }
 
     /**
+     * @author gudbrand schistad
      * Run method that checks if the port is a valid number and
      * then opens a socket and sends a message to the user.
      * Then waits for a reply.
