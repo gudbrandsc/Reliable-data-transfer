@@ -15,6 +15,7 @@ class HistoryData {
      */
     HistoryData(){
         bCastMessage = Collections.synchronizedList(new ArrayList<Chatproto.Chat>());
+        //Just for making fast testing without having to add broadcast messages from program each time
         Chatproto.Chat chat1 = Chatproto.Chat.newBuilder().setMessage("test1").build();
         Chatproto.Chat chat2 = Chatproto.Chat.newBuilder().setMessage("test2").build();
         bCastMessage.add(chat1);
@@ -28,16 +29,17 @@ class HistoryData {
     void addMessage(Chatproto.Chat chat){
         this.bCastMessage.add(chat);
     }
+
     /**
      * Get the broadcast history list
      * @return
      */
-    List<Chatproto.Chat> getbCastMessage(){
+    List<Chatproto.Chat> getHistoryList(){
         return this.bCastMessage;
     }
 
     /**
-     * Replace hisotry with downloaded history
+     * Replace history with downloaded history
      */
     void updateHistory(List<Chatproto.Chat> bCastMessages){
         this.bCastMessage.clear();

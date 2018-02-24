@@ -1,11 +1,8 @@
 package cs682;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 
 
-import javax.swing.text.StyledEditorKit;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -20,8 +17,6 @@ import java.net.InetAddress;
 public class Chat {
     private static ZookeeperInstance zk;
     private volatile static boolean running = true;
-    private static String port;
-    private static String udpPort;
     private static HistoryData historyData = new HistoryData();
     private static UdpHandler udpHandler;
 
@@ -44,8 +39,8 @@ public class Chat {
         }
 
         username = args[1];
-        port = args[3];
-        udpPort = args[5];
+        String port = args[3];
+        String udpPort = args[5];
         Chatproto.ZKData zkData = null;
 
         try {
@@ -81,7 +76,7 @@ public class Chat {
             }else if(command.trim().equalsIgnoreCase("Request")){
                 sendHistoryRequest();
             }else if(command.trim().equalsIgnoreCase("Drop")){
-                setDropProcent();
+                setDropPercent();
             }else if(command.trim().equalsIgnoreCase("Skip")){
                 setSkip();
             } else if(command.trim().equalsIgnoreCase("Exit")){
@@ -98,11 +93,11 @@ public class Chat {
         udpHandler.setSkip(Boolean.parseBoolean(skip));
     }
 
-    private static void setDropProcent() {
+    private static void setDropPercent() {
         Scanner sc = new Scanner(System.in);
-        System.out.println("Enter dropProcent in range 0-1: : ");
-        String dropProcent = sc.nextLine();
-        udpHandler.setDrop(Float.parseFloat(dropProcent));
+        System.out.println("Enter dropPercent in range 0.0 to 1: : ");
+        String dropPercent = sc.nextLine();
+        udpHandler.setDrop(Float.parseFloat(dropPercent));
     }
 
     /**
@@ -115,8 +110,8 @@ public class Chat {
         System.out.println("-- Read -- Display all received broadcast messages.");
         System.out.println("-- Send -- Send a message to a user.");
         System.out.println("-- Request -- Change your broadcast history to an other users.");
-        System.out.println("-- Drop -- Set how many % of packets that should be dropped");
-        System.out.println("-- Skip -- Set if sender should skip sending some requests");
+        System.out.println("-- Drop -- Set how many % of packets that should be dropped.");
+        System.out.println("-- Skip -- Set if sender should skip sending some requests.");
 
     }
 
@@ -138,7 +133,7 @@ public class Chat {
     private static void listBroadcastMessages(){
         System.out.println("--Broadcast Messages--");
 
-        for(Chatproto.Chat chat : historyData.getbCastMessage()){
+        for(Chatproto.Chat chat : historyData.getHistoryList()){
             System.out.println(chat.getMessage());
         }
         System.out.println("---------------------");
@@ -172,7 +167,7 @@ public class Chat {
             MessageSender sender = new MessageSender(chatProto,receiverData);
             sender.start();
 
-            System.out.println("Message was sendt to user: " + receiverName);
+            System.out.println("Message was sent to user: " + receiverName);
 
         }else {
             System.out.println("Not able to send message to " + receiverName);
@@ -213,7 +208,7 @@ public class Chat {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        System.out.println("Broadcast was sendt");
+        System.out.println("Broadcast was sent");
     }
 
     /**

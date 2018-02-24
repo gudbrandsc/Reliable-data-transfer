@@ -14,12 +14,12 @@ import java.util.HashMap;
  * Stores all threads that handles sending and receiving data
  * Sends packets to the right threads*/
 public class UdpHandler implements Runnable {
-    private HashMap<String, PacketReciver> packetRecivers = new HashMap<>();
+    private HashMap<String, PacketReceiver> packetReceivers = new HashMap<>();
     private HashMap<String, PacketSender> packetSenders = new HashMap<>();
     private boolean running = true; //TODO Change for shutdown
     private HistoryData historyData;
     private DatagramSocket socket;
-    private float dropPrecent;
+    private float dropPercent;
     private boolean skip;
 
     /**
@@ -27,14 +27,14 @@ public class UdpHandler implements Runnable {
      * @param port udp port
      * @param historyData object
      */
-    UdpHandler(String port, HistoryData historyData){
+    public UdpHandler(String port, HistoryData historyData){
         this.historyData = historyData;
         try {
             socket = new DatagramSocket(Integer.parseInt(port));
         } catch (SocketException e) {
             e.printStackTrace();
         }
-        this.dropPrecent = 0.0f; // Sets default value for drop percent
+        this.dropPercent = 0.0f; // Sets default value for drop percent
         this.skip = false; //Sets default value not to skip sending requests
 
     }
@@ -57,15 +57,15 @@ public class UdpHandler implements Runnable {
 
 
                 if (type == Chatproto.Data.packetType.REQUEST) {
-                    if(!packetSenders.containsKey(key) && !historyData.getbCastMessage().isEmpty()) { //If user has not a ongoing request start
-                        PacketSender packetSender = new PacketSender(socket,this,packetPort, packetIp, dropPrecent); // create packet sender
+                    if(!packetSenders.containsKey(key) && !historyData.getHistoryList().isEmpty()) { //If user has not a ongoing request start
+                        PacketSender packetSender = new PacketSender(socket,this,packetPort, packetIp, dropPercent); // create packet sender
                         new Thread(packetSender).start(); // start sending packets
                         packetSenders.put(key, packetSender); // store thread in sender map
                     }
                     // If the data ip and port has a ongoing session send data to thread else skip packet
                 } else if (type == Chatproto.Data.packetType.DATA) {
-                    if(packetRecivers.containsKey(key)){
-                        packetRecivers.get(key).addPacket(protoPkt);
+                    if(packetReceivers.containsKey(key)){
+                        packetReceivers.get(key).addPacket(protoPkt);
                     }
                     // Sends ack to thread if thread with key
                 } else if(type == Chatproto.Data.packetType.ACK){
@@ -82,23 +82,23 @@ public class UdpHandler implements Runnable {
     /**
      * Get the history data and return a protobuf object of history
      */
-    Chatproto.History getHistory(){
-        return Chatproto.History.newBuilder().addAllHistory(historyData.getbCastMessage()).build();
+    public Chatproto.History getHistory(){
+        return Chatproto.History.newBuilder().addAllHistory(historyData.getHistoryList()).build();
     }
 
     /**
      * Remove receiver thread from map
      * @param key ip+port
      */
-    void removeReceiver(String key){
-        this.packetRecivers.remove(key);
+    public void removeReceiver(String key){
+        this.packetReceivers.remove(key);
     }
 
     /**
      * Remove sender thread from map
      * @param key ip+port
      */
-    void removeSender(String key){
+    public void removeSender(String key){
         this.packetSenders.remove(key);
     }
 
@@ -106,27 +106,27 @@ public class UdpHandler implements Runnable {
      * Create thread to receive a users history and stores it in the receiver map
      * @param data ZkData object
      */
-    void requestHistory(Chatproto.ZKData data){
+    public void requestHistory(Chatproto.ZKData data){
         String key = data.getIp()+data.getUdpport();
-        PacketReciver receiver = new PacketReciver(socket, data, historyData, this, dropPrecent, skip);
+        PacketReceiver receiver = new PacketReceiver(socket, data, historyData, this, dropPercent, skip);
         new Thread(receiver).start();
-        packetRecivers.put(key,receiver);
+        packetReceivers.put(key,receiver);
     }
 
     /**
      * Ends thread
      */
-    void shutDown(){
+    public void shutDown(){
         this.running = false;
         socket.close();
     }
 
     /**
-     * Set percent of packets that should be droped
+     * Set percent of packets that should be dropped
      * @param percent of packets that should be dropped
      */
-    void setDrop(float percent){
-        this.dropPrecent = percent;
+   public void setDrop(float percent){
+        this.dropPercent = percent;
     }
 
     /**
@@ -134,7 +134,7 @@ public class UdpHandler implements Runnable {
      * Will only work if drop rate is not 0
      * @param value if requests should be dropped or not
      */
-    void setSkip(boolean value){
+    public void setSkip(boolean value){
         this.skip = value;
     }
 }

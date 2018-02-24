@@ -38,7 +38,7 @@ public class PacketSender implements Runnable {
      * @param ip
      * @param dropPercent number of packets that should be dropped
      */
-    PacketSender(DatagramSocket socket, UdpHandler udpHandler, int port, String ip, float dropPercent) {
+    public PacketSender(DatagramSocket socket, UdpHandler udpHandler, int port, String ip, float dropPercent) {
         this.socket = socket;
         this.udpHandler = udpHandler;
         this.history = this.udpHandler.getHistory();
@@ -56,7 +56,7 @@ public class PacketSender implements Runnable {
      * If true, adds the ACK to the que and notify
      * @param data
      */
-    void addAck(Chatproto.Data data) {
+    public void addAck(Chatproto.Data data) {
         System.out.println("Received ACK for: "+data.getSeqNo());
         synchronized (this) {
             if (data.getSeqNo() >= this.expSeqNo && data.getSeqNo() <= this.lastPacket) {
@@ -83,7 +83,8 @@ public class PacketSender implements Runnable {
         int count = 0;
         boolean isLast = false;
         byte[] packetData = new byte[10];
-        int packet_num = 1; //Seq number for the packet
+        int packetNum = 1; //Seq number for the packet
+
         for(int i = 0; i <= end; i++){
             packetData[count] = history[i];
             if(count == 9){
@@ -91,23 +92,23 @@ public class PacketSender implements Runnable {
                     isLast = true;
                 }
                 ByteString packetString = ByteString.copyFrom(packetData);
-                Chatproto.Data packet = Chatproto.Data.newBuilder().setSeqNo(packet_num).setData(packetString).setIsLast(isLast).setTypeValue(2).build();
+                Chatproto.Data packet = Chatproto.Data.newBuilder().setSeqNo(packetNum).setData(packetString).setIsLast(isLast).setTypeValue(2).build();
                 packetDataList.add(packet);
-                packet_num++;
+                packetNum++;
                 count = 0;
             }else if(count < 9 && i == end){ // If last packet does not contain a byte array of size 10
                 isLast = true;
                 byte[] trimmedArray = new byte[count+1];
                 System.arraycopy(packetData, 0, trimmedArray, 0, count+1);
                 ByteString packetString = ByteString.copyFrom(trimmedArray);
-                Chatproto.Data packet = Chatproto.Data.newBuilder().setSeqNo(packet_num).setData(packetString).setIsLast(isLast).setTypeValue(2).build();
+                Chatproto.Data packet = Chatproto.Data.newBuilder().setSeqNo(packetNum).setData(packetString).setIsLast(isLast).setTypeValue(2).build();
                 packetDataList.add(packet);
             }else{
                 count++;
             }
         }
         //sets last packet.
-        if(packet_num >= 4){
+        if(packetNum >= 4){
             this.lastPacket = 4;
         }else{
             this.lastPacket = packetDataList.size();

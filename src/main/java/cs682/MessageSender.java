@@ -38,7 +38,7 @@ public class MessageSender extends Thread{
                 InputStream instream = socket.getInputStream();
                 OutputStream outstream = socket.getOutputStream();
                 chat.writeDelimitedTo(outstream);
-                System.out.println("Message was sendt");
+                System.out.println("Message was sent");
 
                 Chatproto.Reply reply = null;
                 try {
