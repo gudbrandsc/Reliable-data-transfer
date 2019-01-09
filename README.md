@@ -135,44 +135,4 @@ Your program *must* run exactly as follows, where name, 9900, and 9901 will be r
 java -cp project2.jar cs682.Chat -user name -port 9900 -udpport 9901
 ```
 
-### Submission Requirements
 
-There will be two deadlines for this assignment.
-
-By **Thursday, Feb 22** at the *beginning* of class you must be prepared to demonstrate your working solution on the CS microcloud. When testing or running during demonstration please use only your [assigned microcloud node(s) and port(s)](https://github.com/CS682-S18/notes/blob/master/microcloud.md). For full demonstration credit your solution must be completely interoperable with the correct solution and the solution of any other student who also has a correct solution.
-
-By **Friday, Feb 23** at 5PM you must submit all code and a jar file to your github repository for this assignment. Your jar file *must* be in a `lib` directory under your top-level repo directory and it *must* be named `project2.jar`. 
-
-Use the following link to create your private github repository for this assignment: [Project 2](https://classroom.github.com/a/-PlYL18N)
-
-For full credit, make sure to follow all [Style Guidelines](https://github.com/CS682-S18/notes/blob/master/style.md). Points will be deducted for each violation.
-
-
-### Grading Rubric
-
-| Points | Criterion |
-| ------ | -------- |  
-| 20 | Receiver Implementation | 
-| 5 | Sender Implementation - Framing |
-| 5 | Sender Implementation - Sockets |
-| 10 | Sender Implementation - Timers |
-| 10 | Sender Implementation - Retransmissions |
-| 5 | Node Registration and Discovery |
-| 10 | UI | 
-| 10 | Style | 
-| 10 | Runs correctly |
-| 15 | Demonstration  |
-|  | [5] - Your solution running on two nodes without failure.  |
-|  | [5] - Your solution running on two nodes with the following two failure scenarios: (1) Lost DATA packet; (2) Lost ACK packet.  |
-|  | [5] - Your solution with failure scenarios described above downloading from another student's solution running on a different node.  |
-|  | [5] - Your solution running on two nodes with the failure scenario Lost REQUEST packet **and** doing concurrent download and upload.  |
-
-You may earn up to 5 points extra demonstrate credit for this assignment.
-
-You must sign up for a demonstration appointment using [this link](https://calendar.google.com/calendar/selfsched?sstoken=UU1MWWxGQlFmamJYfGRlZmF1bHR8NGRmNmZlODI3ZTdkYzU4YmQ4ZDdiYWM5Yzc0ZWJkZWE).
-
-Partial credit may be awarded for partial functionality and/or partially correct design or style elements.
-
-### Academic Dishonesty
-
-Any work you submit is expected to be your own original work. If you use any web resources in developing your code you are strongly advised to cite those resources. The only exception to this rule is code that is posted on the class website. The URL of the resource you used in a comment in your code is fine. If I google even a single line of uncited code and find it on the internet you may get a 0 on the assignment or an F in the class. You may also get a 0 on the assignment or an F in the class if your solution is at all similar to that of any other student.
