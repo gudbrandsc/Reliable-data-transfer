@@ -1,4 +1,4 @@
-Project 2 - Reliable Data Transfer
+Reliable Data Transfer
 ==================================
 
 ### Demonstration Due - Thursday, Feb 22 - start of class
